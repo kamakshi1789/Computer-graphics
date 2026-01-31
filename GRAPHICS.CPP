@@ -10,7 +10,7 @@ struct P3 {
     float x, y, z;
 };
 
-/* ---------- PROJECTION ---------- */
+/* ---------- 3D → 2D PROJECTION ---------- */
 void project(struct P3 p, int *x, int *y)
 {
     int d = 200;
@@ -18,7 +18,7 @@ void project(struct P3 p, int *x, int *y)
     *y = (int)(p.y * d / (p.z + d)) + 240;
 }
 
-/* ---------- ROTATE Z ---------- */
+/* ---------- ROTATION ABOUT Z AXIS ---------- */
 void rotateZ(struct P3 p[], int n, float ang)
 {
     int i;
@@ -33,106 +33,132 @@ void rotateZ(struct P3 p[], int n, float ang)
     }
 }
 
-/* ---------- DRAW 3D LINE ---------- */
-void drawLine3D(struct P3 a, struct P3 b)
+/* ========================================================= */
+/* 1(a). DDA LINE ALGORITHM (3D) */
+/* ========================================================= */
+void dda3D(struct P3 a, struct P3 b)
 {
     int x1,y1,x2,y2;
     project(a,&x1,&y1);
     project(b,&x2,&y2);
-    line(x1,y1,x2,y2);
-}
 
-/* ===================== 1. DDA LINE (3D) ===================== */
-void dda3D()
-{
-    struct P3 l[2]={{-80,0,80},{80,0,80}};
+    int dx = x2-x1;
+    int dy = y2-y1;
+    int steps = abs(dx)>abs(dy)?abs(dx):abs(dy);
+
+    float xinc = dx/(float)steps;
+    float yinc = dy/(float)steps;
+
+    float x=x1, y=y1;
     int i;
 
-    for(i=0;i<360;i+=5)
+    for(i=0;i<=steps;i++)
     {
-        cleardevice();
-        rotateZ(l,2,5);
-        drawLine3D(l[0],l[1]);
-        delay(30);
+        putpixel((int)(x+0.5),(int)(y+0.5),WHITE);
+        x+=xinc;
+        y+=yinc;
     }
 }
 
-/* ===================== 2. BRESENHAM LINE (3D) ===================== */
-void bres3D()
+/* ========================================================= */
+/* 1(b). BRESENHAM LINE ALGORITHM (3D) */
+/* ========================================================= */
+void bresenham3D(struct P3 a, struct P3 b)
 {
-    dda3D();   // Bresenham logic is 2D, 3D effect via rotation
-}
+    int x1,y1,x2,y2;
+    project(a,&x1,&y1);
+    project(b,&x2,&y2);
 
-/* ===================== 3. BUILT-IN CIRCLE (3D EFFECT) ===================== */
-void circle3D()
-{
-    int ang;
-    for(ang=0;ang<360;ang+=5)
+    int dx = abs(x2-x1);
+    int dy = abs(y2-y1);
+    int p = 2*dy - dx;
+    int x=x1, y=y1, i;
+
+    putpixel(x,y,WHITE);
+
+    for(i=0;i<dx;i++)
     {
-        cleardevice();
-        setcolor(WHITE);
-        circle(320,240,80);
-        delay(30);
+        x++;
+        if(p<0) p+=2*dy;
+        else { y++; p+=2*(dy-dx); }
+        putpixel(x,y,WHITE);
     }
 }
 
-/* ===================== 4. MIDPOINT CIRCLE (3D EFFECT) ===================== */
-void midpoint3D()
+/* ========================================================= */
+/* 2(d). MIDPOINT CIRCLE ALGORITHM (3D) */
+/* ========================================================= */
+void midpointCircle3D(struct P3 c, int r)
 {
-    int ang;
-    for(ang=0;ang<360;ang+=5)
+    int xc,yc;
+    project(c,&xc,&yc);
+
+    int x=0, y=r;
+    int p=1-r;
+
+    while(x<=y)
     {
-        cleardevice();
-        setcolor(WHITE);
-        circle(320,240,80);
-        delay(30);
+        putpixel(xc+x,yc+y,WHITE);
+        putpixel(xc-x,yc+y,WHITE);
+        putpixel(xc+x,yc-y,WHITE);
+        putpixel(xc-x,yc-y,WHITE);
+        putpixel(xc+y,yc+x,WHITE);
+        putpixel(xc-y,yc+x,WHITE);
+        putpixel(xc+y,yc-x,WHITE);
+        putpixel(xc-y,yc-x,WHITE);
+
+        x++;
+        if(p<0) p+=2*x+1;
+        else { y--; p+=2*(x-y)+1; }
     }
 }
 
-/* ===================== 5. RECTANGLE (3D) ===================== */
+/* ========================================================= */
+/* 3(e). RECTANGLE (3D) */
+/* ========================================================= */
 void rectangle3D()
 {
-    struct P3 r[4]={
-        {-60,-40,70},{60,-40,70},{60,40,70},{-60,40,70}
-    };
+    struct P3 r[4]={{-60,-40,80},{60,-40,80},{60,40,80},{-60,40,80}};
     int i;
 
     for(i=0;i<360;i+=5)
     {
         cleardevice();
         rotateZ(r,4,5);
-        drawLine3D(r[0],r[1]);
-        drawLine3D(r[1],r[2]);
-        drawLine3D(r[2],r[3]);
-        drawLine3D(r[3],r[0]);
+        dda3D(r[0],r[1]);
+        dda3D(r[1],r[2]);
+        dda3D(r[2],r[3]);
+        dda3D(r[3],r[0]);
         delay(30);
     }
 }
 
-/* ===================== 6. TRIANGLE (3D) ===================== */
+/* ========================================================= */
+/* 4(f). TRIANGLE (3D) */
+/* ========================================================= */
 void triangle3D()
 {
-    struct P3 t[3]={
-        {-50,-50,60},{50,-50,60},{0,50,60}
-    };
+    struct P3 t[3]={{-50,-50,80},{50,-50,80},{0,50,80}};
     int i;
 
     for(i=0;i<360;i+=5)
     {
         cleardevice();
         rotateZ(t,3,5);
-        drawLine3D(t[0],t[1]);
-        drawLine3D(t[1],t[2]);
-        drawLine3D(t[2],t[0]);
+        dda3D(t[0],t[1]);
+        dda3D(t[1],t[2]);
+        dda3D(t[2],t[0]);
         delay(30);
     }
 }
 
-/* ===================== 7. ELLIPSE (3D EFFECT) ===================== */
+/* ========================================================= */
+/* 5(g). ELLIPSE (3D EFFECT) */
+/* ========================================================= */
 void ellipse3D()
 {
-    int ang;
-    for(ang=0;ang<360;ang+=5)
+    int i;
+    for(i=0;i<360;i+=5)
     {
         cleardevice();
         ellipse(320,240,0,360,120,60);
@@ -140,7 +166,9 @@ void ellipse3D()
     }
 }
 
-/* ===================== MAIN ===================== */
+/* ========================================================= */
+/* MAIN MENU */
+/* ========================================================= */
 void main()
 {
     int gd=DETECT, gm, ch;
@@ -149,14 +177,14 @@ void main()
     do
     {
         cleardevice();
-        printf("\n===== 2D + 3D TRANSFORMATION MENU =====");
-        printf("\n1. DDA Line (3D)");
-        printf("\n2. Bresenham Line (3D)");
-        printf("\n3. Circle Built-in (3D)");
-        printf("\n4. Midpoint Circle (3D)");
-        printf("\n5. Rectangle (3D)");
-        printf("\n6. Triangle (3D)");
-        printf("\n7. Ellipse (3D)");
+        printf("\n===== ALL 7 GRAPHICS ALGORITHMS WITH 3D =====");
+        printf("\n1. DDA Line ");
+        printf("\n2. Bresenham Line ");
+        printf("\n3. Built-in Circle ");
+        printf("\n4. Midpoint Circle ");
+        printf("\n5. Rectangle ");
+        printf("\n6. Triangle ");
+        printf("\n7. Ellipse ");
         printf("\n8. Exit");
         printf("\nEnter choice: ");
         scanf("%d",&ch);
@@ -165,10 +193,10 @@ void main()
 
         switch(ch)
         {
-            case 1: dda3D(); break;
-            case 2: bres3D(); break;
-            case 3: circle3D(); break;
-            case 4: midpoint3D(); break;
+            case 1:{struct P3 a={-80,0,80},b={80,0,80}; dda3D(a,b);} break;
+            case 2:{struct P3 a={-80,0,80},b={80,0,80}; bresenham3D(a,b);} break;
+            case 3: circle(320,240,80); break;
+            case 4:{struct P3 c={0,0,80}; midpointCircle3D(c,60);} break;
             case 5: rectangle3D(); break;
             case 6: triangle3D(); break;
             case 7: ellipse3D(); break;
